@@ -149,11 +149,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       appBar: const GradientHeader(
         title: 'Add Transaction',
       ),
+      resizeToAvoidBottomInset: false, // Prevent automatic resizing
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 16.0,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
+                  ),
+                  child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -186,7 +194,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                         _selectedCategory = _currentCategories.first;
                                       });
                                     },
-                                    activeColor: Colors.green,
+                                    activeColor: const Color(0xFFFFD700),
                                   ),
                                 ),
                                 Expanded(
@@ -304,8 +312,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                     ),
                   ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
     );
   }

@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
   Map<String, List<app_models.Transaction>> _groupedTransactions = {};
-  Map<String, bool> _expandedMonths = {};
+  final Map<String, bool> _expandedMonths = {};
   bool _isLoading = true;
 
   @override
@@ -459,7 +459,7 @@ class _TransactionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == app_models.TransactionType.income;
-    final color = isIncome ? Colors.green : Colors.red;
+    final color = isIncome ? const Color(0xFFFFD700) : Colors.red;
     final icon = isIncome ? Icons.add : Icons.remove;
 
     return Card(
