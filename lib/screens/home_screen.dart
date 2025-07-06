@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: _SummaryCard(
                                     title: 'Balance',
                                     amount: _balance,
-                                    color: _balance >= 0 ? const Color(0xFFFFD700) : Colors.red,
+                                    color: _balance >= 0 ? Colors.green : Colors.red,
                                     icon: Icons.account_balance_wallet,
                                     currencyService: currencyService,
                                   ),
@@ -264,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: _SummaryCard(
                                     title: 'Income',
                                     amount: _totalIncome,
-                                    color: const Color(0xFFFFD700),
+                                    color: Colors.green,
                                     icon: Icons.trending_up,
                                     currencyService: currencyService,
                                   ),
@@ -420,7 +420,11 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: color, size: 20),
+                Icon(
+                  icon,
+                  color: title == 'Balance' ? Colors.grey[400] : color,
+                  size: 20
+                ),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -459,7 +463,7 @@ class _TransactionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == app_models.TransactionType.income;
-    final color = isIncome ? const Color(0xFFFFD700) : Colors.red;
+    final color = isIncome ? Colors.green : Colors.red;
     final icon = isIncome ? Icons.add : Icons.remove;
 
     return Card(

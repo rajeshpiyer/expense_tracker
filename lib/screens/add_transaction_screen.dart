@@ -194,7 +194,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                         _selectedCategory = _currentCategories.first;
                                       });
                                     },
-                                    activeColor: const Color(0xFFFFD700),
+                                    activeColor: Colors.green,
                                   ),
                                 ),
                                 Expanded(
@@ -312,10 +312,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                     ),
                   ],
-                  ),
-                );
-              },
-            ),
+                ),
+              ),
+            );
+          },
+        ),
     );
   }
 }

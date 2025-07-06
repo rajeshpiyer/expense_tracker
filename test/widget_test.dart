@@ -1,4 +1,4 @@
-// This is a basic Flutter widget test.
+// This is a basic Flutter widget test for the Expense Tracker app.
 //
 // To perform an interaction with a widget in your test, use the WidgetTester
 // utility in the flutter_test package. For example, you can send tap and scroll
@@ -11,20 +11,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:expense_tracker/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Expense Tracker app loads login screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ExpenseTrackerApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the login screen loads with the app title.
+    expect(find.text('Expense Tracker'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verify that the Google sign-in button is present.
+    expect(find.text('Sign in with Google'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the app logo/icon is present.
+    expect(find.byIcon(Icons.account_balance_wallet), findsOneWidget);
+
+    // Verify that features section is present.
+    expect(find.text('Features:'), findsOneWidget);
+    expect(find.text('Secure Google Sign-In'), findsOneWidget);
+    expect(find.text('Local data storage'), findsOneWidget);
+    expect(find.text('Track income & expenses'), findsOneWidget);
+    expect(find.text('Categorize transactions'), findsOneWidget);
   });
 }
