@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
+import 'screens/main_navigation.dart';
 import 'services/currency_service.dart';
+import 'services/expense_limit_service.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notification service
+  await NotificationService().initialize();
+
   runApp(const ExpenseTrackerApp());
 }
 
@@ -12,8 +20,11 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CurrencyService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CurrencyService()),
+        ChangeNotifierProvider(create: (context) => ExpenseLimitService()),
+      ],
       child: MaterialApp(
       title: 'Expense Tracker',
       theme: ThemeData(
@@ -106,7 +117,11 @@ class ExpenseTrackerApp extends StatelessWidget {
           foregroundColor: Color(0xFF000000),
         ),
       ),
-        home: const LoginScreen(),
+        initialRoute: '/login',
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/main': (context) => const MainNavigation(),
+        },
         debugShowCheckedModeBanner: false,
       ),
     );

@@ -3,12 +3,13 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/currency_service.dart';
+import '../services/expense_limit_service.dart';
+import '../services/notification_service.dart';
 import '../database/database_helper.dart';
 import '../models/user.dart';
 import '../models/currency.dart';
 import '../models/transaction.dart' as app_models;
 import '../widgets/gradient_header.dart';
-import 'login_screen.dart';
 import 'add_transaction_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,19 +22,60 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final TextEditingController _searchController = TextEditingController();
 
   User? _currentUser;
   double _balance = 0.0;
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
   Map<String, List<app_models.Transaction>> _groupedTransactions = {};
+  Map<String, List<app_models.Transaction>> _filteredGroupedTransactions = {};
   final Map<String, bool> _expandedMonths = {};
   bool _isLoading = true;
+  String _searchQuery = '';
+  app_models.TransactionType? _filterType;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+      _applyFilters();
+    });
+  }
+
+  void _applyFilters() {
+    _filteredGroupedTransactions = {};
+
+    _groupedTransactions.forEach((monthKey, transactions) {
+      List<app_models.Transaction> filteredTransactions = transactions.where((transaction) {
+        // Search filter
+        bool matchesSearch = _searchQuery.isEmpty ||
+            transaction.category.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            (transaction.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+
+        // Type filter
+        bool matchesType = _filterType == null || transaction.type == _filterType;
+
+        return matchesSearch && matchesType;
+      }).toList();
+
+      if (filteredTransactions.isNotEmpty) {
+        _filteredGroupedTransactions[monthKey] = filteredTransactions;
+      }
+    });
   }
 
   Future<void> _loadData() async {
@@ -91,15 +133,177 @@ class _HomeScreenState extends State<HomeScreen> {
         sortedGrouped[key] = _groupedTransactions[key]!;
       }
       _groupedTransactions = sortedGrouped;
+
+      // Apply current filters
+      _applyFilters();
     }
+  }
+
+  Future<void> _deleteTransaction(int transactionId) async {
+    try {
+      await _databaseHelper.deleteTransaction(transactionId);
+      await _loadData(); // Reload all data after deletion
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transaction deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting transaction: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _enableNotifications() async {
+    try {
+      await NotificationService().scheduleDailyFoodReminders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Daily food reminders enabled! You\'ll receive notifications at 10 AM, 2 PM, and 9 PM.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error enabling notifications: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _disableNotifications() async {
+    try {
+      await NotificationService().cancelAllNotifications();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Daily food reminders disabled.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error disabling notifications: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showNotificationSettings() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Food Expense Reminders'),
+        content: const Text(
+          'Enable daily notifications to remind you to record your food expenses at:\n\n'
+          '• 10:00 AM (Breakfast)\n'
+          '• 2:00 PM (Lunch)\n'
+          '• 9:00 PM (Dinner)',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _disableNotifications();
+            },
+            child: const Text('Disable'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _enableNotifications();
+            },
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFFFD700),
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showExpenseLimitSettings() {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<ExpenseLimitService>(
+        builder: (context, limitService, child) => AlertDialog(
+          title: const Text('Monthly Expense Limit'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Set a monthly spending limit to track your expenses:'),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text('Enable Expense Limit'),
+                value: limitService.isEnabled,
+                onChanged: (value) {
+                  limitService.setEnabled(value);
+                },
+                activeColor: const Color(0xFFFFD700),
+              ),
+              if (limitService.isEnabled) ...[
+                const SizedBox(height: 16),
+                const Text('Select Monthly Limit:'),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ExpenseLimitService.limitOptions.map((limit) {
+                    final isSelected = limitService.monthlyLimit == limit;
+                    return FilterChip(
+                      label: Text(limitService.formatLimit(limit)),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          limitService.setLimit(limit);
+                        }
+                      },
+                      selectedColor: const Color(0xFFFFD700),
+                      checkmarkColor: Colors.black,
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _signOut() async {
     await _authService.signOut();
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 
@@ -116,10 +320,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
-      return const LoginScreen();
-    }
-
     return Scaffold(
       appBar: GradientHeader(
         title: 'Expense Tracker',
@@ -164,9 +364,33 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _signOut();
+              } else if (value == 'notifications') {
+                _showNotificationSettings();
+              } else if (value == 'expense_limit') {
+                _showExpenseLimitSettings();
               }
             },
             itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'notifications',
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications, color: Color(0xFFFFD700)),
+                    SizedBox(width: 8),
+                    Text('Food Reminders'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'expense_limit',
+                child: Row(
+                  children: [
+                    Icon(Icons.trending_up, color: Color(0xFFFFD700)),
+                    SizedBox(width: 8),
+                    Text('Expense Limit'),
+                  ],
+                ),
+              ),
               const PopupMenuItem<String>(
                 value: 'logout',
                 child: Row(
@@ -285,6 +509,108 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
+                    const SizedBox(height: 16),
+
+                    // Expense Limit Chart
+                    Consumer<ExpenseLimitService>(
+                      builder: (context, limitService, child) {
+                        if (!limitService.isEnabled) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final progress = limitService.calculateProgress(_totalExpense);
+                        final statusMessage = limitService.getStatusMessage(_totalExpense);
+                        final isOverLimit = limitService.isOverLimit(_totalExpense);
+
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.trending_up,
+                                      color: isOverLimit ? Colors.red : const Color(0xFFFFD700),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Monthly Expense Limit',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Progress Bar
+                                Container(
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(4),
+                                    color: Colors.grey[800],
+                                  ),
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: progress,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                        color: isOverLimit
+                                            ? Colors.red
+                                            : progress > 0.8
+                                                ? Colors.orange
+                                                : const Color(0xFFFFD700),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Consumer<CurrencyService>(
+                                      builder: (context, currencyService, child) {
+                                        return Text(
+                                          '${currencyService.formatAmount(_totalExpense)} / ${currencyService.formatAmount(limitService.monthlyLimit)}',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    Text(
+                                      '${(progress * 100).toStringAsFixed(1)}%',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: isOverLimit ? Colors.red : Colors.grey[400],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  statusMessage,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isOverLimit
+                                        ? Colors.red
+                                        : progress > 0.8
+                                            ? Colors.orange
+                                            : Colors.grey[400],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24),
 
                     // Transactions by Month
@@ -297,8 +623,94 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Search and Filter Section
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            // Search Bar
+                            TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search by category or description...',
+                                prefixIcon: const Icon(Icons.search, color: Color(0xFFFFD700)),
+                                suffixIcon: _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                        },
+                                      )
+                                    : null,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFFFFD700)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Filter Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FilterChip(
+                                    label: const Text('All'),
+                                    selected: _filterType == null,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _filterType = null;
+                                        _applyFilters();
+                                      });
+                                    },
+                                    selectedColor: const Color(0xFFFFD700),
+                                    checkmarkColor: Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilterChip(
+                                    label: const Text('Income'),
+                                    selected: _filterType == app_models.TransactionType.income,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _filterType = selected ? app_models.TransactionType.income : null;
+                                        _applyFilters();
+                                      });
+                                    },
+                                    selectedColor: Colors.green,
+                                    checkmarkColor: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilterChip(
+                                    label: const Text('Expense'),
+                                    selected: _filterType == app_models.TransactionType.expense,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _filterType = selected ? app_models.TransactionType.expense : null;
+                                        _applyFilters();
+                                      });
+                                    },
+                                    selectedColor: Colors.red,
+                                    checkmarkColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     // Monthly Grouped Transactions
-                    _groupedTransactions.isEmpty
+                    _filteredGroupedTransactions.isEmpty
                         ? const Card(
                             child: Padding(
                               padding: EdgeInsets.all(32.0),
@@ -333,7 +745,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : Consumer<CurrencyService>(
                             builder: (context, currencyService, child) {
                               return Column(
-                                children: _groupedTransactions.entries.map((entry) {
+                                children: _filteredGroupedTransactions.entries.map((entry) {
                                   final monthKey = entry.key;
                                   final transactions = entry.value;
                                   final isExpanded = _expandedMonths[monthKey] ?? false;
@@ -372,6 +784,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 .map((transaction) => _TransactionItem(
                                                       transaction: transaction,
                                                       currencyService: currencyService,
+                                                      onDelete: () => _deleteTransaction(transaction.id!),
                                                     ))
                                                 .toList(),
                                           ),
@@ -454,10 +867,12 @@ class _SummaryCard extends StatelessWidget {
 class _TransactionItem extends StatelessWidget {
   final app_models.Transaction transaction;
   final CurrencyService currencyService;
+  final VoidCallback? onDelete;
 
   const _TransactionItem({
     required this.transaction,
     required this.currencyService,
+    this.onDelete,
   });
 
   @override
@@ -466,36 +881,76 @@ class _TransactionItem extends StatelessWidget {
     final color = isIncome ? Colors.green : Colors.red;
     final icon = isIncome ? Icons.add : Icons.remove;
 
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(icon, color: color),
+    return Dismissible(
+      key: Key('transaction_${transaction.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
         ),
-        title: Text(transaction.category),
-        subtitle: transaction.description != null
-            ? Text(transaction.description!)
-            : null,
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${isIncome ? '+' : '-'}${currencyService.formatAmount(transaction.amount)}',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Transaction'),
+            content: const Text('Are you sure you want to delete this transaction?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
               ),
-            ),
-            Text(
-              DateFormat('MMM dd').format(transaction.date),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
               ),
-            ),
-          ],
+            ],
+          ),
+        ) ?? false;
+      },
+      onDismissed: (direction) {
+        onDelete?.call();
+      },
+      child: Card(
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.1),
+            child: Icon(icon, color: color),
+          ),
+          title: Text(transaction.category),
+          subtitle: transaction.description != null
+              ? Text(transaction.description!)
+              : null,
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isIncome ? '+' : '-'}${currencyService.formatAmount(transaction.amount)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                DateFormat('MMM dd').format(transaction.date),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

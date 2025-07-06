@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,9 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final User? user = await _authService.signInWithGoogle();
       if (user != null && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        Navigator.of(context).pushReplacementNamed('/main');
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

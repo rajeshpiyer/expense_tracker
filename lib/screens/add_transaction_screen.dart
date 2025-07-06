@@ -29,27 +29,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   final List<String> _incomeCategories = [
     'Salary',
-    'Freelance',
-    'Investment',
-    'Business',
-    'Rental',
+    'Per Diem',
     'Bonus',
-    'Gift',
+    'Advance',
     'Other',
   ];
 
   final List<String> _expenseCategories = [
     'Food',
-    'Transport',
-    'Entertainment',
-    'Shopping',
-    'Bills',
-    'Healthcare',
-    'Education',
-    'Travel',
     'Groceries',
-    'Utilities',
-    'Insurance',
+    'Purchase',
+    'Travel',
+    'Entertainment',
     'Other',
   ];
 

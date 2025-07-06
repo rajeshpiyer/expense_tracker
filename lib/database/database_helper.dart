@@ -165,6 +165,35 @@ class DatabaseHelper {
     });
   }
 
+  Future<List<app_models.Transaction>> getTransactionsByMonth(
+      String userId, String monthKey) async {
+    final db = await database;
+
+    // Parse the month key (format: yyyy-MM)
+    final parts = monthKey.split('-');
+    final year = int.parse(parts[0]);
+    final month = int.parse(parts[1]);
+
+    // Calculate start and end timestamps for the month
+    final startOfMonth = DateTime(year, month, 1);
+    final endOfMonth = DateTime(year, month + 1, 0, 23, 59, 59, 999);
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: 'userId = ? AND date >= ? AND date <= ?',
+      whereArgs: [
+        userId,
+        startOfMonth.millisecondsSinceEpoch,
+        endOfMonth.millisecondsSinceEpoch
+      ],
+      orderBy: 'date DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return app_models.Transaction.fromMap(maps[i]);
+    });
+  }
+
   Future<double> getTotalAmount(String userId, app_models.TransactionType type) async {
     final db = await database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
