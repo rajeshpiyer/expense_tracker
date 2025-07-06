@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/json_import_service.dart';
 import '../models/user.dart';
 import 'home_screen.dart';
 import 'insights_screen.dart';
@@ -44,6 +45,38 @@ class _MainNavigationState extends State<MainNavigation> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error signing out: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _importInitialData() async {
+    final currentUser = _authService.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final jsonImportService = JsonImportService();
+      final success = await jsonImportService.importInitialDataIfNeeded(
+        currentUser.email,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+              ? 'Initial data imported successfully!'
+              : 'No data to import or already imported'),
+            backgroundColor: success ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error importing initial data: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -145,7 +178,24 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
               
               const Divider(color: Colors.grey),
-              
+
+              // Excel Import (only for target user)
+              if (currentUser?.email == 'prajeshiyer@gmail.com')
+                ListTile(
+                  leading: const Icon(
+                    Icons.file_upload,
+                    color: Color(0xFFFFD700),
+                  ),
+                  title: const Text(
+                    'Import Initial Data',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _importInitialData();
+                  },
+                ),
+
               // Settings and Sign Out
               ListTile(
                 leading: const Icon(

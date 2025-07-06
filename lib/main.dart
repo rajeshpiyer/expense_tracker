@@ -5,12 +5,33 @@ import 'screens/main_navigation.dart';
 import 'services/currency_service.dart';
 import 'services/expense_limit_service.dart';
 import 'services/notification_service.dart';
+import 'services/auth_service.dart';
+import 'services/json_import_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize notification service
   await NotificationService().initialize();
+
+  // Initialize auth service
+  final authService = AuthService();
+  await authService.initialize();
+
+  // Auto-import initial data if user is logged in and is target user
+  if (authService.isSignedIn && authService.currentUser?.email == 'prajeshiyer@gmail.com') {
+    final jsonImportService = JsonImportService();
+    try {
+      bool imported = await jsonImportService.importInitialDataIfNeeded(
+        authService.currentUser!.email,
+      );
+      if (imported) {
+        print('Initial data imported successfully');
+      }
+    } catch (e) {
+      print('Initial data import failed: $e');
+    }
+  }
 
   runApp(const ExpenseTrackerApp());
 }

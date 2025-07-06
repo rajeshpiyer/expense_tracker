@@ -1,0 +1,313 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created": "2025-07-06T16:04:36.008369",
+    "source": "AD Expenses.xlsx",
+    "total_transactions": 43,
+    "target_user": "prajeshiyer@gmail.com",
+    "description": "Initial expense data for automatic import"
+  },
+  "transactions": [
+    {
+      "date": "2024-06-14",
+      "description": "Currency Exchange",
+      "amount": 500.0,
+      "category": "Other",
+      "type": "income"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Airport Taxi",
+      "amount": -85.0,
+      "category": "Travel",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Per Diem from Sebastian",
+      "amount": 2314.0,
+      "category": "Per Diem",
+      "type": "income"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Breakfast",
+      "amount": -7.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Lunch",
+      "amount": -11.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Lunch Box",
+      "amount": -19.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Parachute Oil",
+      "amount": -17.5,
+      "category": "Purchase",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Tide laundry liquid",
+      "amount": -20.0,
+      "category": "Purchase",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-15",
+      "description": "Laundry Bag",
+      "amount": -18.0,
+      "category": "Purchase",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-16",
+      "description": "Breakfast & Lunch",
+      "amount": -9.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-16",
+      "description": "Dinner & Coffee",
+      "amount": -8.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-17",
+      "description": "Breakfast & Lunch",
+      "amount": -11.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-17",
+      "description": "Dinner",
+      "amount": -20.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-18",
+      "description": "Breakfast & Lunch",
+      "amount": -10.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-18",
+      "description": "Taxi - Office to home",
+      "amount": -38.0,
+      "category": "Travel",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-18",
+      "description": "Taxi - Home to Dubai",
+      "amount": -242.0,
+      "category": "Travel",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-18",
+      "description": "Taxi - Dubai to Home",
+      "amount": -283.5,
+      "category": "Travel",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-18",
+      "description": "Dinner",
+      "amount": -3.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-19",
+      "description": "Breakfast & Lunch",
+      "amount": -10.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-19",
+      "description": "Dinner + Coffee",
+      "amount": -8.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-20",
+      "description": "Breakfast & Lunch",
+      "amount": -10.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-20",
+      "description": "Eveing & Night Coffee",
+      "amount": -4.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-20",
+      "description": "Sim Card & Recharge",
+      "amount": -75.0,
+      "category": "Other",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-21",
+      "description": "Breakfast & Coffee",
+      "amount": -6.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-21",
+      "description": "Lunch & Dinner",
+      "amount": -17.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-21",
+      "description": "Taxi Fare - Turf",
+      "amount": -10.0,
+      "category": "Travel",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-22",
+      "description": "Breakfast",
+      "amount": -6.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-22",
+      "description": "Lunch and Dinner",
+      "amount": -20.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-22",
+      "description": "Coffee",
+      "amount": -2.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-22",
+      "description": "Gokarting+Taxi",
+      "amount": -138.0,
+      "category": "Travel",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-23",
+      "description": "Breakfast+Lunch",
+      "amount": -10.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-23",
+      "description": "Dinner & Coffee",
+      "amount": -7.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-24",
+      "description": "Breakfast and Lunch",
+      "amount": -10.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-24",
+      "description": "Dinner",
+      "amount": -8.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-25",
+      "description": "Breakfast & Lunch",
+      "amount": -10.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-25",
+      "description": "Dinner & Coffee",
+      "amount": -14.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-26",
+      "description": "Breakfast & Lunch",
+      "amount": -6.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-26",
+      "description": "Dinner & Coffee",
+      "amount": -14.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-27",
+      "description": "Breakfast",
+      "amount": -4.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-27",
+      "description": "Lunch",
+      "amount": -19.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-28",
+      "description": "Brunch",
+      "amount": -6.0,
+      "category": "Other",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-28",
+      "description": "Dinner",
+      "amount": -20.0,
+      "category": "Food",
+      "type": "expense"
+    },
+    {
+      "date": "2024-06-29",
+      "description": "Breakfast",
+      "amount": -4.0,
+      "category": "Food",
+      "type": "expense"
+    }
+  ]
+}
