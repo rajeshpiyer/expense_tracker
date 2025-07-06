@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/financeflow_logo.dart';
 import '../models/user.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -122,10 +123,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.account_balance_wallet,
+                              child: const FinanceFlowLogo(
                                 size: 70,
-                                color: Color(0xFFFFD700), // Yellow icon
+                                animated: true,
                               ),
                             ),
                           ),
@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           
                           // App Title
                           const Text(
-                            'Expense Tracker',
+                            'FinanceFlow',
                             style: TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.bold,
@@ -143,10 +143,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Subtitle
                           const Text(
-                            'Track your income and expenses with ease',
+                            'Intelligent financial management at your fingertips',
                             style: TextStyle(
                               fontSize: 18,
                               color: Color(0xFFB0B0B0), // Light grey text

@@ -60,8 +60,18 @@ class NotificationService {
           _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
 
-      final bool? granted = await androidImplementation?.requestNotificationsPermission();
-      return granted ?? false;
+      // Request notification permission
+      final bool? notificationGranted = await androidImplementation?.requestNotificationsPermission();
+
+      // Request exact alarm permission for Android 12+
+      final bool? exactAlarmGranted = await androidImplementation?.requestExactAlarmsPermission();
+
+      if (kDebugMode) {
+        print('Notification permission: $notificationGranted');
+        print('Exact alarm permission: $exactAlarmGranted');
+      }
+
+      return (notificationGranted ?? false) && (exactAlarmGranted ?? true);
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       final bool? result = await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
@@ -122,32 +132,84 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
-    await _flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      _nextInstanceOfTime(hour, minute),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'food_reminders',
-          'Food Expense Reminders',
-          channelDescription: 'Daily reminders to record food expenses',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    try {
+      await _flutterLocalNotificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        _nextInstanceOfTime(hour, minute),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'food_reminders',
+            'Food Expense Reminders',
+            channelDescription: 'Daily reminders to record food expenses',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            enableVibration: true,
+            playSound: true,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'food_reminder',
-    );
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: 'food_reminder',
+      );
+
+      if (kDebugMode) {
+        print('Scheduled notification $id for $hour:$minute');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error scheduling notification $id: $e');
+      }
+      // Fallback to inexact scheduling if exact alarms fail
+      try {
+        await _flutterLocalNotificationsPlugin.zonedSchedule(
+          id,
+          title,
+          body,
+          _nextInstanceOfTime(hour, minute),
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'food_reminders',
+              'Food Expense Reminders',
+              channelDescription: 'Daily reminders to record food expenses',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+              enableVibration: true,
+              playSound: true,
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: 'food_reminder',
+        );
+
+        if (kDebugMode) {
+          print('Fallback: Scheduled inexact notification $id for $hour:$minute');
+        }
+      } catch (fallbackError) {
+        if (kDebugMode) {
+          print('Fallback scheduling also failed for notification $id: $fallbackError');
+        }
+        rethrow;
+      }
+    }
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {

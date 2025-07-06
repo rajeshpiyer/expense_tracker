@@ -28,8 +28,18 @@ class JsonImportService {
       
       // Check if there are existing transactions
       final dbHelper = DatabaseHelper();
-      final existingTransactions = await dbHelper.getTransactions(_targetUser);
-      
+
+      // Get user by email to find their userId
+      final user = await dbHelper.getUserByEmail(userEmail);
+      if (user == null) {
+        print('JsonImportService: User not found in database for email: $userEmail');
+        return false;
+      }
+
+      final existingTransactions = await dbHelper.getTransactions(user.id);
+
+      print('JsonImportService: Found ${existingTransactions.length} existing transactions for user ${user.id} ($userEmail)');
+
       if (existingTransactions.isNotEmpty) {
         print('JsonImportService: Existing transactions found (${existingTransactions.length}), skipping import');
         // Mark as imported to avoid future checks
@@ -56,7 +66,7 @@ class JsonImportService {
       
       for (var transactionData in transactionsList) {
         try {
-          final transaction = _parseJsonToTransaction(transactionData, userEmail);
+          final transaction = _parseJsonToTransaction(transactionData, user.id);
           if (transaction != null) {
             await dbHelper.insertTransaction(transaction);
             importedCount++;

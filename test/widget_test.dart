@@ -8,15 +8,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:expense_tracker/main.dart';
+import 'package:financeflow/main.dart';
 
 void main() {
-  testWidgets('Expense Tracker app loads login screen', (WidgetTester tester) async {
+  testWidgets('FinanceFlow app loads login screen', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const ExpenseTrackerApp());
+    await tester.pumpWidget(const FinanceFlowApp());
 
     // Verify that the login screen loads with the app title.
-    expect(find.text('Expense Tracker'), findsOneWidget);
+    expect(find.text('FinanceFlow'), findsOneWidget);
 
     // Verify that the Google sign-in button is present.
     expect(find.text('Sign in with Google'), findsOneWidget);

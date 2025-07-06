@@ -194,6 +194,26 @@ class DatabaseHelper {
     });
   }
 
+  Future<List<app_models.Transaction>> getTransactionsByDateRange(
+      String userId, DateTime startDate, DateTime endDate) async {
+    final db = await database;
+
+    // Convert dates to milliseconds for comparison
+    final startMillis = startDate.millisecondsSinceEpoch;
+    final endMillis = endDate.millisecondsSinceEpoch;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: 'userId = ? AND date >= ? AND date <= ?',
+      whereArgs: [userId, startMillis, endMillis],
+      orderBy: 'date DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return app_models.Transaction.fromMap(maps[i]);
+    });
+  }
+
   Future<double> getTotalAmount(String userId, app_models.TransactionType type) async {
     final db = await database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
@@ -204,10 +224,33 @@ class DatabaseHelper {
     return (result.first['total'] as double?) ?? 0.0;
   }
 
+  Future<double> getCurrentMonthAmount(String userId, app_models.TransactionType type) async {
+    final db = await database;
+
+    // Get current month start and end
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
+
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      'SELECT SUM(amount) as total FROM transactions WHERE userId = ? AND type = ? AND date >= ? AND date <= ?',
+      [
+        userId,
+        type.name,
+        startOfMonth.millisecondsSinceEpoch,
+        endOfMonth.millisecondsSinceEpoch
+      ],
+    );
+
+    return (result.first['total'] as double?) ?? 0.0;
+  }
+
   Future<double> getBalance(String userId) async {
     final totalIncome = await getTotalAmount(userId, app_models.TransactionType.income);
     final totalExpense = await getTotalAmount(userId, app_models.TransactionType.expense);
-    return totalIncome - totalExpense;
+    // Since expenses are stored as negative amounts, we add them directly
+    // Balance = Income + Expenses (where expenses are negative)
+    return totalIncome + totalExpense;
   }
 
   Future<int> updateTransaction(app_models.Transaction transaction) async {

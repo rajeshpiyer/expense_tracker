@@ -33,11 +33,11 @@ void main() async {
     }
   }
 
-  runApp(const ExpenseTrackerApp());
+  runApp(const FinanceFlowApp());
 }
 
-class ExpenseTrackerApp extends StatelessWidget {
-  const ExpenseTrackerApp({super.key});
+class FinanceFlowApp extends StatelessWidget {
+  const FinanceFlowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +47,7 @@ class ExpenseTrackerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => ExpenseLimitService()),
       ],
       child: MaterialApp(
-      title: 'Expense Tracker',
+      title: 'FinanceFlow',
       theme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: const ColorScheme.dark(

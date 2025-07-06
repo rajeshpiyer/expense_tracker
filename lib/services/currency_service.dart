@@ -29,4 +29,9 @@ class CurrencyService extends ChangeNotifier {
   String formatAmount(double amount) {
     return '${_selectedCurrency.symbol}${amount.toStringAsFixed(2)}';
   }
+
+  /// Format amount for PDF with currency code instead of symbol
+  String formatAmountForPdf(double amount) {
+    return '${_selectedCurrency.code} ${amount.toStringAsFixed(2)}';
+  }
 }

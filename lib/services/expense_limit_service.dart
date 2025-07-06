@@ -84,18 +84,6 @@ class ExpenseLimitService extends ChangeNotifier {
     }
   }
   
-  // Predefined limit options (in AED)
-  static const List<double> limitOptions = [
-    1000.0,
-    2000.0,
-    3000.0,
-    5000.0,
-    7500.0,
-    10000.0,
-    15000.0,
-    20000.0,
-  ];
-  
   String formatLimit(double limit) {
     if (limit >= 1000) {
       return '${(limit / 1000).toStringAsFixed(limit % 1000 == 0 ? 0 : 1)}K AED';

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/json_import_service.dart';
 import '../models/user.dart';
+
 import 'home_screen.dart';
 import 'insights_screen.dart';
 
@@ -23,7 +25,7 @@ class _MainNavigationState extends State<MainNavigation> {
   ];
 
   final List<String> _titles = [
-    'Expense Tracker',
+    'FinanceFlow',
     'Insights',
   ];
 
@@ -84,11 +86,57 @@ class _MainNavigationState extends State<MainNavigation> {
     }
   }
 
+  Future<void> _resetImportStatus() async {
+    try {
+      final jsonImportService = JsonImportService();
+      await jsonImportService.resetImportStatus();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Import status reset. You can now import initial data again.'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error resetting import status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    // If we're not on the home screen (index 0), navigate to home
+    if (_selectedIndex != 0) {
+      setState(() {
+        _selectedIndex = 0;
+      });
+      return false; // Don't exit the app
+    }
+
+    // If we're on home screen, minimize the app (Android) or allow normal back behavior
+    SystemNavigator.pop();
+    return false; // Don't let Flutter handle the back button
+  }
+
   @override
   Widget build(BuildContext context) {
     final User? currentUser = _authService.currentUser;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false, // We handle the back button ourselves
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          await _onWillPop();
+        }
+      },
+      child: Scaffold(
       drawer: Drawer(
         child: Container(
           decoration: const BoxDecoration(
@@ -124,38 +172,59 @@ class _MainNavigationState extends State<MainNavigation> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // App Icon
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet,
-                          color: Colors.black,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       // User Info
                       if (currentUser != null) ...[
-                        Text(
-                          currentUser.name,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          currentUser.email,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontSize: 14,
-                          ),
+                        Row(
+                          children: [
+                            // User Profile Photo
+                            CircleAvatar(
+                              radius: 25,
+                              backgroundImage: currentUser.photoUrl != null
+                                  ? NetworkImage(currentUser.photoUrl!)
+                                  : null,
+                              backgroundColor: Colors.black26,
+                              child: currentUser.photoUrl == null
+                                  ? Text(
+                                      currentUser.name.isNotEmpty
+                                          ? currentUser.name[0].toUpperCase()
+                                          : 'U',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            // User Details
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentUser.name,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    currentUser.email,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 12,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -196,6 +265,22 @@ class _MainNavigationState extends State<MainNavigation> {
                   },
                 ),
 
+                // Debug option to reset import status
+                ListTile(
+                  leading: const Icon(
+                    Icons.refresh,
+                    color: Color(0xFFFFD700),
+                  ),
+                  title: const Text(
+                    'Reset Import Status',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _resetImportStatus();
+                  },
+                ),
+
               // Settings and Sign Out
               ListTile(
                 leading: const Icon(
@@ -219,6 +304,7 @@ class _MainNavigationState extends State<MainNavigation> {
         index: _selectedIndex,
         children: _screens,
       ),
+    ),
     );
   }
 }
@@ -242,7 +328,7 @@ class _DrawerItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: isSelected ? const Color(0xFFFFD700).withOpacity(0.2) : null,
+        color: isSelected ? const Color(0xFFFFD700).withValues(alpha: 0.2) : null,
       ),
       child: ListTile(
         leading: Icon(

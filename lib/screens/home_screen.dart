@@ -5,6 +5,8 @@ import '../services/auth_service.dart';
 import '../services/currency_service.dart';
 import '../services/expense_limit_service.dart';
 import '../services/notification_service.dart';
+import '../services/pdf_report_service.dart';
+import '../services/email_service.dart';
 import '../database/database_helper.dart';
 import '../models/user.dart';
 import '../models/currency.dart';
@@ -28,12 +30,14 @@ class _HomeScreenState extends State<HomeScreen> {
   double _balance = 0.0;
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
+  double _currentMonthExpense = 0.0;
   Map<String, List<app_models.Transaction>> _groupedTransactions = {};
   Map<String, List<app_models.Transaction>> _filteredGroupedTransactions = {};
   final Map<String, bool> _expandedMonths = {};
   bool _isLoading = true;
   String _searchQuery = '';
   app_models.TransactionType? _filterType;
+  bool _isGeneratingReport = false;
 
   @override
   void initState() {
@@ -100,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _balance = await _databaseHelper.getBalance(_currentUser!.id);
       _totalIncome = await _databaseHelper.getTotalAmount(_currentUser!.id, app_models.TransactionType.income);
       _totalExpense = await _databaseHelper.getTotalAmount(_currentUser!.id, app_models.TransactionType.expense);
+      _currentMonthExpense = await _databaseHelper.getCurrentMonthAmount(_currentUser!.id, app_models.TransactionType.expense);
     }
   }
 
@@ -267,24 +272,32 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (limitService.isEnabled) ...[
                 const SizedBox(height: 16),
-                const Text('Select Monthly Limit:'),
+                const Text('Monthly Limit Amount:'),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: ExpenseLimitService.limitOptions.map((limit) {
-                    final isSelected = limitService.monthlyLimit == limit;
-                    return FilterChip(
-                      label: Text(limitService.formatLimit(limit)),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          limitService.setLimit(limit);
+                Consumer<CurrencyService>(
+                  builder: (context, currencyService, child) {
+                    return TextFormField(
+                      initialValue: limitService.monthlyLimit.toStringAsFixed(0),
+                      decoration: InputDecoration(
+                        labelText: 'Enter custom amount',
+                        prefixText: '${currencyService.selectedCurrency.symbol} ',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.check, color: Color(0xFFFFD700)),
+                          onPressed: () {
+                            // The onChanged callback will handle the update
+                          },
+                        ),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (value) {
+                        final amount = double.tryParse(value);
+                        if (amount != null && amount > 0) {
+                          limitService.setLimit(amount);
                         }
                       },
-                      selectedColor: const Color(0xFFFFD700),
-                      checkmarkColor: Colors.black,
                     );
-                  }).toList(),
+                  },
                 ),
               ],
             ],
@@ -318,11 +331,119 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _generateAndSendReport() async {
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User not logged in'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Email service is now pre-configured
+
+    setState(() {
+      _isGeneratingReport = true;
+    });
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+              ),
+              SizedBox(height: 16),
+              Text('Generating PDF report...'),
+            ],
+          ),
+        ),
+      );
+
+      // Generate PDF report
+      final currencyService = Provider.of<CurrencyService>(context, listen: false);
+      final pdfFile = await PdfReportService.generateMonthlyReport(
+        user: _currentUser!,
+        currencyService: currencyService,
+      );
+
+      // Update dialog text
+      if (mounted) {
+        Navigator.of(context).pop();
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFD700)),
+                ),
+                SizedBox(height: 16),
+                Text('Sending email...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Send email
+      final success = await EmailService.sendPdfReport(
+        user: _currentUser!,
+        pdfFile: pdfFile,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Report sent successfully to ${_currentUser!.email}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to send report'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating report: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isGeneratingReport = false;
+      });
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: GradientHeader(
-        title: 'Expense Tracker',
+        title: 'FinanceFlow',
         actions: [
           // Currency Dropdown
           Consumer<CurrencyService>(
@@ -518,9 +639,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           return const SizedBox.shrink();
                         }
 
-                        final progress = limitService.calculateProgress(_totalExpense);
-                        final statusMessage = limitService.getStatusMessage(_totalExpense);
-                        final isOverLimit = limitService.isOverLimit(_totalExpense);
+                        // Use current month expenses for limit calculation
+                        final currentMonthExpenseAbs = _currentMonthExpense.abs();
+                        final progress = limitService.calculateProgress(currentMonthExpenseAbs);
+                        final statusMessage = limitService.getStatusMessage(currentMonthExpenseAbs);
+                        final isOverLimit = limitService.isOverLimit(currentMonthExpenseAbs);
 
                         return Card(
                           child: Padding(
@@ -541,6 +664,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isOverLimit ? Colors.red : Colors.green,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        isOverLimit ? 'Exceeded' : 'On Track',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -575,7 +714,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Consumer<CurrencyService>(
                                       builder: (context, currencyService, child) {
                                         return Text(
-                                          '${currencyService.formatAmount(_totalExpense)} / ${currencyService.formatAmount(limitService.monthlyLimit)}',
+                                          '${currencyService.formatAmount(currentMonthExpenseAbs)} / ${currencyService.formatAmount(limitService.monthlyLimit)}',
                                           style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
@@ -795,6 +934,47 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                           ),
+
+                    // Send Report Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: _isGeneratingReport ? null : _generateAndSendReport,
+                          icon: _isGeneratingReport
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                  ),
+                                )
+                              : const Icon(Icons.email, color: Colors.black),
+                          label: Text(
+                            _isGeneratingReport ? 'Generating Report...' : 'Send Monthly Report',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFD700),
+                            disabledBackgroundColor: Colors.grey,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Bottom spacing to ensure full scrollability
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),

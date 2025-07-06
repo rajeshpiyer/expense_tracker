@@ -1,11 +1,11 @@
 {
-    "name": "expense_tracker",
-    "short_name": "expense_tracker",
+    "name": "FinanceFlow",
+    "short_name": "FinanceFlow",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1A1A1A",
+    "theme_color": "#FFD700",
+    "description": "FinanceFlow - Intelligent financial management at your fingertips",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
